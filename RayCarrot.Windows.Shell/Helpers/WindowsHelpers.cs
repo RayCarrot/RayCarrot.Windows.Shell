@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Text;
 using RayCarrot.Logging;
 
 namespace RayCarrot.Windows.Shell
@@ -210,6 +211,40 @@ namespace RayCarrot.Windows.Shell
                 throw new Win32Exception();
         }
 
+        /// <summary>
+        /// Finds the executable to use when opening a file
+        /// </summary>
+        /// <param name="filePath">The file to check</param>
+        /// <returns>The executable path, or null if none was found</returns>
+        public static string FindExecutableForFile(FileSystemPath filePath)
+        {
+            var executable = new StringBuilder(1024);
+            
+            var m = FindExecutable(filePath, String.Empty, executable);
+
+            if (m <= 32)
+            {
+                if (m == 2)
+                    RL.Logger?.LogWarningSource($"Executable was not found due to file not existing");
+                else if (m == 3)
+                    RL.Logger?.LogWarningSource($"Executable was not found due to the path being invalid");
+                else if (m == 5)
+                    RL.Logger?.LogWarningSource($"Executable was not found due to that the file could not be accessed");
+                else if (m == 8)
+                    RL.Logger?.LogWarningSource($"Executable was not found due to the system being out of memory");
+                else if (m == 31)
+                    RL.Logger?.LogWarningSource($"Executable was not found due to there not being an association for the specified file type with an executable file");
+                else
+                    RL.Logger?.LogWarningSource($"Executable was not found due to an unknown error");
+
+                return null;
+            }
+
+            var result = executable.ToString();
+
+            return result.IsNullOrEmpty() ? null : result;
+        }
+
         [Flags]
         private enum MoveFileFlags
         {
@@ -233,5 +268,8 @@ namespace RayCarrot.Windows.Shell
         /// <remarks>http://msdn.microsoft.com/en-us/library/aa365240(VS.85).aspx</remarks>
         [DllImport("kernel32.dll", EntryPoint = "MoveFileEx", SetLastError = true)]
         private static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName, MoveFileFlags dwFlags);
+
+        [DllImport("shell32.dll", EntryPoint = "FindExecutable")]
+        private static extern uint FindExecutable(string lpFile, string lpDirectory, StringBuilder lpResult);
     }
 }
