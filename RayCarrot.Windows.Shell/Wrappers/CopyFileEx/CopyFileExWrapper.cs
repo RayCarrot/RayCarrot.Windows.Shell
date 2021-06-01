@@ -36,7 +36,7 @@ namespace RayCarrot.Windows.Shell
         /// <exception cref="IOException">An error occurred during the operation</exception>
         public void CopyFile()
         {
-            if (!Data.Source.FileExists)
+            if (!File.Exists(Data.Source))
                 throw new FileNotFoundException("source does not exist");
 
             // Create the handler if we got a callback

@@ -1,14 +1,15 @@
 ﻿using IWshRuntimeLibrary;
 using RayCarrot.Common;
-using RayCarrot.IO;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
-using RayCarrot.Logging;
+using Microsoft.WindowsAPICodePack.Shell;
+using File = System.IO.File;
 
 namespace RayCarrot.Windows.Shell
 {
@@ -26,10 +27,10 @@ namespace RayCarrot.Windows.Shell
         /// Opens Windows Explorer in specified path. Supports files and directories.
         /// </summary>
         /// <param name="path">Path to open</param>
-        public static void OpenExplorerPath(FileSystemPath path)
+        public static void OpenExplorerPath(string path)
         {
-            if (path.FileExists)
-                Process.Start("explorer.exe", "/select, \"" + path.FullPath + "\"")?.Dispose();
+            if (File.Exists(path))
+                Process.Start("explorer.exe", "/select, \"" + path + "\"")?.Dispose();
             else
                 Process.Start(path)?.Dispose();
         }
@@ -67,8 +68,6 @@ namespace RayCarrot.Windows.Shell
             {
                 x.Start();
 
-                RL.Logger?.LogDebugSource($"A CMD process has started with the script: {script}");
-
                 x.WaitForExit();
             });
         }
@@ -76,20 +75,20 @@ namespace RayCarrot.Windows.Shell
         /// <summary>
         /// Creates a shortcut for a file
         /// </summary>
-        /// <param name="ShortcutName">The name of the shortcut file</param>
-        /// <param name="DestinationDirectory">The destination of the shortcut file</param>
-        /// <param name="TargetFile">The file the shortcut targets</param>
+        /// <param name="shortcutName">The name of the shortcut file</param>
+        /// <param name="destinationDirectory">The destination of the shortcut file</param>
+        /// <param name="targetFile">The file the shortcut targets</param>
         /// <param name="arguments">Optional launch arguments</param>
-        public static void CreateFileShortcut(FileSystemPath ShortcutName, FileSystemPath DestinationDirectory, FileSystemPath TargetFile, string arguments = null)
+        public static void CreateFileShortcut(string shortcutName, string destinationDirectory, string targetFile, string arguments = null)
         {
-            IWshShortcut shortcut = (IWshShortcut)new WshShell().CreateShortcut(DestinationDirectory + ShortcutName.ChangeFileExtension(new FileExtension(".lnk")));
+            IWshShortcut shortcut = (IWshShortcut)new WshShell().CreateShortcut(destinationDirectory + Path.ChangeExtension(shortcutName, ".lnk"));
 
-            shortcut.TargetPath = TargetFile;
+            shortcut.TargetPath = targetFile;
 
             if (arguments != null)
                 shortcut.Arguments = arguments;
 
-            shortcut.WorkingDirectory = TargetFile.Parent;
+            shortcut.WorkingDirectory = Path.GetDirectoryName(targetFile);
 
             shortcut.Save();
         }
@@ -100,9 +99,9 @@ namespace RayCarrot.Windows.Shell
         /// <param name="shortcutName">The name of the shortcut file</param>
         /// <param name="destinationDirectory">The path of the directory</param>
         /// <param name="targetURL">The URL</param>
-        public static void CreateURLShortcut(FileSystemPath shortcutName, FileSystemPath destinationDirectory, string targetURL)
+        public static void CreateURLShortcut(string shortcutName, string destinationDirectory, string targetURL)
         {
-            using StreamWriter writer = new StreamWriter(destinationDirectory + shortcutName.ChangeFileExtension(new FileExtension(".url")));
+            using StreamWriter writer = new StreamWriter(destinationDirectory + Path.ChangeExtension(shortcutName, ".url"));
 
             writer.WriteLine("[InternetShortcut]");
             writer.WriteLine("URL=" + targetURL);
@@ -115,7 +114,7 @@ namespace RayCarrot.Windows.Shell
         /// </summary>
         /// <param name="shortcutPath">The shortcut file</param>
         /// <returns></returns>
-        public static string GetShortCutArguments(FileSystemPath shortcutPath) =>
+        public static string GetShortCutArguments(string shortcutPath) =>
             GetShortCutTargetInfo(shortcutPath).Arguments;
 
         /// <summary>
@@ -123,7 +122,7 @@ namespace RayCarrot.Windows.Shell
         /// </summary>
         /// <param name="shortcutPath">The shortcut file</param>
         /// <returns></returns>
-        public static FileSystemPath GetShortCutTarget(FileSystemPath shortcutPath) =>
+        public static string GetShortCutTarget(string shortcutPath) =>
             GetShortCutTargetInfo(shortcutPath).TargetPath;
 
         /// <summary>
@@ -131,7 +130,7 @@ namespace RayCarrot.Windows.Shell
         /// </summary>
         /// <param name="shortcutPath">The shortcut file</param>
         /// <returns>The target info</returns>
-        public static IWshShortcut GetShortCutTargetInfo(FileSystemPath shortcutPath) =>
+        public static IWshShortcut GetShortCutTargetInfo(string shortcutPath) =>
             ((IWshShortcut)new WshShell().CreateShortcut(shortcutPath));
 
         /// <summary>
@@ -205,7 +204,7 @@ namespace RayCarrot.Windows.Shell
         /// </summary>
         /// <param name="targetPath">The target to remove on reboot</param>
         /// <exception cref="Win32Exception"/>
-        public static void DeleteOnReboot(FileSystemPath targetPath)
+        public static void DeleteOnReboot(string targetPath)
         {
             if (!MoveFileEx(targetPath, null, MoveFileFlags.MOVEFILE_DELAY_UNTIL_REBOOT))
                 throw new Win32Exception();
@@ -215,8 +214,9 @@ namespace RayCarrot.Windows.Shell
         /// Finds the executable to use when opening a file
         /// </summary>
         /// <param name="filePath">The file to check</param>
+        /// <param name="errorCode">The error code in case the operation fails</param>
         /// <returns>The executable path, or null if none was found</returns>
-        public static string FindExecutableForFile(FileSystemPath filePath)
+        public static string FindExecutableForFile(string filePath, out uint? errorCode)
         {
             var executable = new StringBuilder(1024);
             
@@ -224,25 +224,32 @@ namespace RayCarrot.Windows.Shell
 
             if (m <= 32)
             {
-                if (m == 2)
-                    RL.Logger?.LogWarningSource($"Executable was not found due to file not existing");
-                else if (m == 3)
-                    RL.Logger?.LogWarningSource($"Executable was not found due to the path being invalid");
-                else if (m == 5)
-                    RL.Logger?.LogWarningSource($"Executable was not found due to that the file could not be accessed");
-                else if (m == 8)
-                    RL.Logger?.LogWarningSource($"Executable was not found due to the system being out of memory");
-                else if (m == 31)
-                    RL.Logger?.LogWarningSource($"Executable was not found due to there not being an association for the specified file type with an executable file");
-                else
-                    RL.Logger?.LogWarningSource($"Executable was not found due to an unknown error");
+                errorCode = m;
 
                 return null;
             }
 
             var result = executable.ToString();
 
+            errorCode = null;
+
             return result.IsNullOrEmpty() ? null : result;
+        }
+
+        /// <summary>
+        /// Gets the icon or thumbnail for a file or directory
+        /// </summary>
+        /// <param name="path">The path of the file or directory to get the icon or thumbnail for</param>
+        /// <param name="shellThumbnailSize">The size of the icon or thumbnail</param>
+        /// <param name="getIcon">True if the icon should be returned or false if the thumbnail should be returned</param>
+        /// <returns>The icon or thumbnail</returns>
+        public static Bitmap GetIconOrThumbnail(string path, ShellThumbnailSize shellThumbnailSize, bool getIcon = true)
+        {
+            using var shellObject = ShellObject.FromParsingName(path);
+
+            var thumb = shellObject.Thumbnail;
+            thumb.FormatOption = getIcon ? ShellThumbnailFormatOption.IconOnly : ShellThumbnailFormatOption.ThumbnailOnly;
+            return thumb.GetTransparentBitmap(shellThumbnailSize);
         }
 
         [Flags]

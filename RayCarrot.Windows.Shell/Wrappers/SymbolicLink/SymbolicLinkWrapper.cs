@@ -1,5 +1,4 @@
-﻿using RayCarrot.IO;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -12,7 +11,7 @@ namespace RayCarrot.Windows.Shell
     {
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.U1)]
-        private static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLinkFlags dwFlags);
+        private static extern bool _CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLinkFlags dwFlags);
 
         /// <summary>
         /// Creates a symbolic link. This requires administration privileges and is only supported on Windows Vista and above.
@@ -21,9 +20,9 @@ namespace RayCarrot.Windows.Shell
         /// <param name="targetPath">The path for the target of the symbolic link. Can be relative or absolute.</param>
         /// <param name="flags">The flags to use</param>
         /// <exception cref="IOException">An error occurred during the operation</exception>
-        public static void CreateSymbolicLink(FileSystemPath symLinkPath, FileSystemPath targetPath, SymbolicLinkFlags flags)
+        public static void CreateSymbolicLink(string symLinkPath, string targetPath, SymbolicLinkFlags flags)
         {
-            if (CreateSymbolicLink(symLinkPath.FullPath, targetPath.FullPath, flags))
+            if (_CreateSymbolicLink(symLinkPath, targetPath, flags))
                 return;
 
             // Get reason for failure if it failed

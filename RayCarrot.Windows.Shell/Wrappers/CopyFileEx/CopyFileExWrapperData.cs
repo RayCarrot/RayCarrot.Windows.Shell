@@ -1,5 +1,4 @@
-﻿using RayCarrot.IO;
-using System.Threading;
+﻿using System.Threading;
 
 namespace RayCarrot.Windows.Shell
 {
@@ -17,7 +16,7 @@ namespace RayCarrot.Windows.Shell
         /// <param name="callback">The operation callback</param>
         /// <param name="state">The operation state</param>
         /// <param name="cancellationToken">The cancellation token</param>
-        public CopyFileExWrapperData(FileSystemPath source, FileSystemPath destination, CopyFileOptions options, CopyFileCallback callback, object state, CancellationToken cancellationToken)
+        public CopyFileExWrapperData(string source, string destination, CopyFileOptions options, CopyFileCallback callback, object state, CancellationToken cancellationToken)
         {
             Source = source;
             Destination = destination;
@@ -30,12 +29,12 @@ namespace RayCarrot.Windows.Shell
         /// <summary>
         /// The source file
         /// </summary>
-        public FileSystemPath Source { get; }
+        public string Source { get; }
 
         /// <summary>
         /// The destination file
         /// </summary>
-        public FileSystemPath Destination { get; }
+        public string Destination { get; }
 
         /// <summary>
         /// The options
@@ -66,6 +65,6 @@ namespace RayCarrot.Windows.Shell
         /// <param name="totalFileSize"></param>
         /// <param name="totalBytesTransferred"></param>
         /// <returns></returns>
-        public delegate CopyFileCallbackAction CopyFileCallback(FileSystemPath source, FileSystemPath destination, object state, long totalFileSize, long totalBytesTransferred);
+        public delegate CopyFileCallbackAction CopyFileCallback(string source, string destination, object state, long totalFileSize, long totalBytesTransferred);
     }
 }

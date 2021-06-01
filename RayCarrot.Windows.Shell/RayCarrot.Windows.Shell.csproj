@@ -52,7 +52,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extensions\FileSystemPathExtensions.cs" />
     <Compile Include="Extensions\FormExtensions.cs" />
     <Compile Include="Extensions\OperationStateExtensions.cs" />
     <Compile Include="Extensions\ShellThumbnailExtensions.cs" />
@@ -89,14 +88,6 @@
     <ProjectReference Include="..\..\RayCarrot.Common\RayCarrot.Common\RayCarrot.Common.csproj">
       <Project>{bd854370-65ef-41c0-b920-7c82dd3daa63}</Project>
       <Name>RayCarrot.Common</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\RayCarrot.IO\RayCarrot.IO\RayCarrot.IO.csproj">
-      <Project>{e271dc05-6629-48d1-9423-fe4957eab807}</Project>
-      <Name>RayCarrot.IO</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\RayCarrot.Logging\RayCarrot.Logging\RayCarrot.Logging.csproj">
-      <Project>{f0ba66a8-806b-464e-9a2a-b8050c453524}</Project>
-      <Name>RayCarrot.Logging</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
